@@ -216,10 +216,10 @@ def command_release(args, settings):
                 fp.write('This is the releases branch.')
             do_all(['git add README', 'git commit -m \'Initial commit\'', 'git push origin release'])
     else:
-        message('Looks like there is a release branch')
+        message('Looks like there is a release branch, but releases aren\'t implemented yet.')
 
 def command_deploy(args, settings):
-    pass
+    error('Deploy functionality not implemented yet.')
 
 def save_version_file(version_info, filename):
     'Given the version info tuple and a format specifier, return a string in the specified metafile format'
