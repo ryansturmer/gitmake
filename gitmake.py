@@ -36,11 +36,11 @@ class VersionInfo(object):
         m= re.match(r'v(\d+)\.(\d+)\.(\d+)-(\w+)', s)
         return VersionInfo(*m.groups())
     def rev_major(self, branch=None):
-        return VersionInfo(self.major+1,0,0,branch or self.branch, time.time())    
+        return VersionInfo(self.major+1,0,0,branch or self.branch)    
     def rev_minor(self, branch=None):
-        return VersionInfo(self.major,self.minor+1,0,branch or self.branch, time.time())    
+        return VersionInfo(self.major,self.minor+1,0,branch or self.branch)    
     def rev_patch(self, branch=None):
-        return VersionInfo(self.major,self.minor,self.patch+1,branch or self.branch, time.time())   
+        return VersionInfo(self.major,self.minor,self.patch+1,branch or self.branch)   
     def __cmp__(self, x):
         if x.branch != self.branch:
             raise ValueError("Cannot compare two versions from different branches")
@@ -103,7 +103,7 @@ def get_git_branch():
     rc, output = do('git branch')
     for line in output.split('\n'):
         if line.strip().startswith('*'):
-            return line.lstrip('*')
+            return line.lstrip('*').strip()
     raise Exception("Couldn't determine the current branch!")
 
 def get_git_tags(branch=None):
@@ -151,7 +151,7 @@ def do_cleanup(args, settings):
 
 def do_create_tag_here(args, settings):
     msg = args.message
-    current_version = VersionInfo.load(VERSION_FILENAME)
+    get_git_tags()
     git_branch = get_git_branch()
     git_tags = get_git_tags(git_branch)
     if git_tags:
@@ -162,19 +162,19 @@ def do_create_tag_here(args, settings):
         current_version = VersionInfo(branch=git_branch)
         
     if args.major:
-        new_version = current_version.major_rev(branch)
+        new_version = current_version.rev_major(git_branch)
     elif args.minor:
-        new_version = current_version.minor_rev(branch)
+        new_version = current_version.rev_minor(git_branch)
     elif args.patch:
-        new_version = current_version.patch_rev(branch)
+        new_version = current_version.rev_patch(git_branch)
     else:
         error('No rev level specified for tag.')
 
     message('Tagged version will be %s.' % new_version.tag)
 
-    work = ['git tag -a %s -m "%s"' % (new_tag, msg),
-            'git push origin %s' % new_tag]
-    message('Creating a tag for %s' % new_tag)
+    work = ['git tag -a %s -m "%s"' % (new_version.tag, msg),
+            'git push origin %s' % new_version.tag]
+    message('Creating a tag for %s' % new_version.tag)
     
     (tag_ok, tag_err), msgs = do_all(work)
     if tag_ok:
@@ -207,7 +207,7 @@ def command_release(args, settings):
 def command_deploy(args, settings):
     pass
 
-def save_version_info_file(version_info, filename):
+def save_version_file(version_info, filename):
     'Given the version info tuple and a format specifier, return a string in the specified metafile format'
     C_TEMPLATE = '#ifndef __VERSION_H__\n#define __VERSION_H__\n#define VERSION_MAJOR $major\n#define VERSION_MINOR $minor\n#define VERSION_PATCH $patch\n#define VERSION_BRANCH $branch\n#define VERSION_TIMESTAMP $timestamp\n#endif'
     JSON_TEMPLATE = '{"major":$major,"minor":$minor,"patch":$patch,"branch":"$branch","timestamp":$timestamp}'
@@ -240,7 +240,7 @@ def initialize_environment(args):
             'project_description' : 'The default gitmake project description.',
             'build_command' : 'make',
             'clean_command' : 'make clean',
-            'version_include_file' : 'version.h',
+            'version_file' : 'version.json',
         }
     }
     ok = True
