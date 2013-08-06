@@ -98,13 +98,19 @@ def get_git_url():
     rc, url = do('git config --get remote.origin.url')
     return url.strip()
 
-def get_git_branch():
-    'Get the name of the current branch'
+def get_git_branches():
+    'Get the names of all branches.  The first one is the current branch'
     rc, output = do('git branch')
+    retval = []
     for line in output.split('\n'):
         if line.strip().startswith('*'):
-            return line.lstrip('*').strip()
-    raise Exception("Couldn't determine the current branch!")
+            current_branch = line.lstrip('*').strip()
+        else:
+            retval.append(line.strip())
+    return [current_branch] + retval
+
+def get_git_branch():
+    return get_git_branches()[0]
 
 def get_git_tags(branch=None):
     'Get the list of all release tags in the current git repository'
@@ -202,7 +208,15 @@ def command_tag(args, settings):
         do_create_tag_here(args, settings) 
     
 def command_release(args, settings):
-    print get_git_tags()
+    if 'release' not in get_git_branches():
+        yes = confirm('No branch exists for releases.  Create one?')
+        if yes:
+            do_all(['git checkout --orphan release', 'git rm -rf .'])
+            with open('README','w') as fp:
+                fp.write('This is the releases branch.')
+            do_all(['git add README', 'git commit -m \'Initial commit\'', 'git push origin release'])
+    else:
+        message('Looks like there is a release branch')
 
 def command_deploy(args, settings):
     pass
