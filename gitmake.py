@@ -8,7 +8,7 @@ import string
 from contextlib import contextmanager
 
 # Version of this script
-version_info = (0,0,6,'master')
+version_info = (0,0,7,'master')
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
@@ -72,7 +72,7 @@ class GitRepos(object):
     def __init__(self, url=None, dir=None, remote=False):
         self.url = url or do('git config --get remote.origin.url')[1].strip()
         self.dir = os.path.abspath(dir) if dir else os.curdir
-    
+        self.remote = remote 
     def checkout(self, branch):
         with cd(self.dir):
             do('git checkout %s' % branch)
