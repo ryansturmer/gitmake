@@ -175,6 +175,8 @@ def do_create_tag_here(args, settings):
         message('No previous releases.')
         current_version = VersionInfo(branch=git_branch)
         
+    save_version_file(current_version, settings['target']['version_file'])
+    
     if args.major:
         new_version = current_version.rev_major(git_branch)
     elif args.minor:
@@ -217,6 +219,7 @@ def command_build(args, settings):
 def command_tag(args, settings):
     'Function called by the "tag" command line'
     do_cleanup(args, settings)
+    
     build_ok = do_build_here(args, settings)
     if build_ok:
         do_create_tag_here(args, settings) 
