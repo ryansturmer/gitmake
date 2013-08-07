@@ -8,7 +8,7 @@ import string
 from contextlib import contextmanager
 
 # Version of this script
-version_info = (0,0,7,'master')
+version_info = (0,0,8,'master')
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
