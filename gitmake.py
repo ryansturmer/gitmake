@@ -5,9 +5,10 @@ import os
 import subprocess
 import re
 import string
+from contextlib import contextmanager
 
 # Version of this script
-version_info = (0,0,4,'master')
+version_info = (0,0,0,'dev')
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
@@ -26,6 +27,14 @@ except:
     def error(s):
         return message(s)
     error('No colorama support.  Install colorama for console coloring.')
+
+@contextmanager
+def cd(path):
+    old_path = os.path.abspath(os.getcwd())
+    new_path = os.path.abspath(path)
+    os.chdir(new_path)
+    yield
+    os.chdir(old_path)
 
 class VersionInfo(object):
     def __init__(self,major=0,minor=0,patch=0,branch='dev'):
@@ -95,7 +104,7 @@ class GitRepos(object):
     def get_current_branch(self):
         return self.get_branches()[0]
         
-    def get_git_tags(self, branch=None):
+    def get_tags(self, branch=None):
         with cd(self.dir):
             if branch:
                 rc, output = do('git tag -l v*.*.*-%s' % branch, show=False)

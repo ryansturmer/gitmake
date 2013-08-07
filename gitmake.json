@@ -1,6 +1,6 @@
 {
     "target": {
-        "build_command": "python2 build.py", 
+        "build_command": "python build.py", 
         "project_description": "A simple build system for projects in git.", 
         "clean_command": "echo 'Dummy Clean'", 
         "project_name": "Gitmake", 
