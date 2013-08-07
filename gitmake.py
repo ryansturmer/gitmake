@@ -73,12 +73,12 @@ class GitRepos(object):
             do('git commit %s -m "%s"' % ('-a' if all else '', msg))
 
     def add(self, *files):
-        files = ' '.join(['"'+os.path.abspath(file)+'"' for file in files]
+        files = ' '.join(['"'+os.path.abspath(file)+'"' for file in files])
         with cd(self.dir):
             do('git add %s' % files)
 
     def clone(self):
-        do('git clone "%s" "%s"' % self.url, self.dir
+        do('git clone "%s" "%s"' % (self.url, self.dir))
 
     def get_branches(self):
         'Get the names of all branches.  The first one is the current branch'
