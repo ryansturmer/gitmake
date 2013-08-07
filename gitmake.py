@@ -59,10 +59,76 @@ class VersionInfo(object):
 
 gitmake_version = VersionInfo(*version_info)
 
+class GitRepos(object):
+    def __init__(self, url=None, dir=None, remote=False):
+        self.url = url or do('git config --get remote.origin.url')[1].strip()
+        self.dir = os.path.abspath(dir) if dir else os.curdir
+    
+    def checkout(self, branch):
+        with cd(self.dir):
+            do('git checkout %s' % branch)
+
+    def commit(self, all=False, msg=''):
+        with cd(self.dir):
+            do('git commit %s -m "%s"' % ('-a' if all else '', msg))
+
+    def add(self, *files):
+        files = ' '.join(['"'+os.path.abspath(file)+'"' for file in files]
+        with cd(self.dir):
+            do('git add %s' % files)
+
+    def clone(self):
+        do('git clone "%s" "%s"' % self.url, self.dir
+
+    def get_branches(self):
+        'Get the names of all branches.  The first one is the current branch'
+        with cd(self.dir):
+            rc, output = do('git branch')
+            retval = []
+            for line in output.split('\n'):
+                if line.strip().startswith('*'):
+                    current_branch = line.lstrip('*').strip()
+                else:
+                    retval.append(line.strip())
+            return [current_branch] + retval
+
+    def get_current_branch(self):
+        return self.get_branches()[0]
+        
+    def get_git_tags(self, branch=None):
+        with cd(self.dir):
+            if branch:
+                rc, output = do('git tag -l v*.*.*-%s' % branch)
+            else:
+                rc, output = do('git tag -l v*.*.*-*')
+            if rc != 0:
+                raise Exception("Couldn't get list of tags: %s" % output)
+            versions = [x.strip() for x in output.split('\n') if x.strip() != '']
+            return sorted(map(lambda x : VersionInfo.from_string(x), versions))
+
+    def push(self, branch='master', remote='origin'):
+        cmd = 'git push %s %s' % (remote, branch)
+        if self.remote:
+            with cd(self.dir):
+                do(cmd)
+        else:
+            print "Skipping remote operation: %s" % cmd
+
+    def create_orphan_branch(self, branch):
+        with cd(self.dir):
+            do_all(['git checkout --orphan %s' % branch, 'git rm -rf .'])
+            with open('README','w') as fp:
+                fp.write('This is the %s branch.' % branch)
+            self.add('README')
+            self.commit(msg='Initial commit')
+            self.push(branch)
+
 def do(command, show=False):
     'Execute the provided command with the shell.  Show the output if specified. Return a tuple: (ret code, command output)'
     returncode = 0
     try:
+        if show:
+            print command
         output = subprocess.check_output(command, shell=True)
     except subprocess.CalledProcessError, e:
         returncode = e.returncode
@@ -100,36 +166,6 @@ def command_init(args, settings):
     initialize_environment(args)
     message("Done.")
 
-def get_git_url():
-    'Get the remote origin URL for the git repository in the current directory'
-    rc, url = do('git config --get remote.origin.url')
-    return url.strip()
-
-def get_git_branches():
-    'Get the names of all branches.  The first one is the current branch'
-    rc, output = do('git branch')
-    retval = []
-    for line in output.split('\n'):
-        if line.strip().startswith('*'):
-            current_branch = line.lstrip('*').strip()
-        else:
-            retval.append(line.strip())
-    return [current_branch] + retval
-
-def get_git_branch():
-    return get_git_branches()[0]
-
-def get_git_tags(branch=None):
-    'Get the list of all release tags in the current git repository'
-    if branch:
-        rc, output = do('git tag -l v*.*.*-%s' % branch)
-    else:
-        rc, output = do('git tag -l v*.*.*-*')
-    if rc != 0:
-        raise Exception("Couldn't get list of tags: %s" % output)
-    versions = [x.strip() for x in output.split('\n') if x.strip() != '']
-    return sorted(map(lambda x : VersionInfo.from_string(x), versions))
-
 def do_build_here(args, settings):
     ' Perform the build in the current directory '
     build_cmd = settings['target']['build_command']
@@ -144,10 +180,10 @@ def do_build_here(args, settings):
 
 def do_clone_tag_here(args, settings):
     'Clone the remote origin of the current git repository to the current directory'
-    url = get_git_url()
-    message('Cloning repos %s and checking out tag %s to %s' % (url, args.tag, os.curdir))
-    do('git clone %s .' % url)
-    do('git checkout %s' % args.tag)
+    repos = GitRepos()
+    url = repos.url
+    message('Cloning repos %s and checking out tag %s to %s' % (url, args.tag, repos.dir))
+    repos.clone()
 
 def do_make_build_dir_here(args, settings):
     'Delete the build directory if it already exists, and create a new one here.  Return the path to the build dir.'
@@ -164,8 +200,9 @@ def do_cleanup(args, settings):
 
 def do_create_tag_here(args, settings):
     msg = args.message
-    git_branch = get_git_branch()
-    git_tags = get_git_tags(git_branch)
+    repos = GitRepos()
+    git_branch = repos.get_current_branch()
+    git_tags = repos.get_tags(git_branch)
     version_file = settings['target']['version_file']
     
     if git_tags:
@@ -187,7 +224,11 @@ def do_create_tag_here(args, settings):
 
     message('Tagged version will be %s.' % new_version.tag)
 
-    save_version_file(new_version, settings['target']['version_file'])
+    save_version_file(new_version, version_file)
+
+    repos.add(version_file)
+    repos.commit(all=True, msg='Tag commit for %s generated by gitmake.py' % new_version.tag)
+    repos.tag
     work = ['git add %s' % version_file, 
             'git commit -a -m \'Tag commit auto generated by gitmake.py\'',
             'git tag -a %s -m "%s"' % (new_version.tag, msg),
@@ -225,13 +266,11 @@ def command_tag(args, settings):
         do_create_tag_here(args, settings) 
     
 def command_release(args, settings):
-    if 'release' not in get_git_branches():
+    repos = GitRepos(remote=args.remote)
+    if 'release' not in repos.get_branches():
         yes = confirm('No branch exists for releases.  Create one?')
         if yes:
-            do_all(['git checkout --orphan release', 'git rm -rf .'])
-            with open('README','w') as fp:
-                fp.write('This is the releases branch.')
-            do_all(['git add README', 'git commit -m "Initial commit"', 'git push origin release'])
+            repos.create_orphan_branch('release')
     else:
         message('Looks like there is a release branch, but releases aren\'t implemented yet.')
 
@@ -327,7 +366,7 @@ def parse_arguments():
     all_parsers = (main_parser, init_parser, build_parser, tag_parser, release_parser, deploy_parser)
     for parser in all_parsers:
         parser.add_argument('--noconfirm', dest='confirm', action='store_false', default=True, help='Suppress any "Are you sure?" messages.')
-
+        parser.add_argument('--noremote', dest='remote', action='store_false', default=True, help='Skip any git operations that push changes to a remote')
     return main_parser.parse_args()
 
 if __name__ == "__main__":
