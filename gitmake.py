@@ -70,7 +70,7 @@ gitmake_version = VersionInfo(*version_info)
 
 class GitRepos(object):
     def __init__(self, url=None, dir=None, remote=False):
-        self.url = url or do('git config --get remote.origin.url')[1].strip()
+        self.url = url or do('git config --get remote.origin.url', show=False)[1].strip()
         self.dir = os.path.abspath(dir) if dir else os.curdir
         self.remote = remote 
     def checkout(self, branch):
@@ -121,7 +121,7 @@ class GitRepos(object):
             with cd(self.dir):
                 do(cmd)
         else:
-            print "Skipping remote operation: %s" % cmd
+            message("Skipping remote operation: %s" % cmd)
 
     def create_orphan_branch(self, branch):
         with cd(self.dir):
@@ -211,6 +211,11 @@ def do_cleanup(args, settings):
     message('Deleting build directory: %s' % os.path.abspath(build_dir))
     do('rm -Rf %s' % build_dir)
 
+def do_collect_release_data_here(args, settings):
+    files = [os.path.abspath(f) for f in settings['target']['release_files']]
+    for file in files:
+        message("Releasing this file: %s" % file)
+
 def do_create_tag_here(args, settings):
     msg = args.message
     repos = GitRepos()
@@ -270,15 +275,23 @@ def command_tag(args, settings):
     
 def command_release(args, settings):
     repos = GitRepos(remote=args.remote)
+    current_branch = repos.get_current_branch()
     if 'release' not in repos.get_branches():
         yes = confirm('No branch exists for releases.  Create one?')
         if yes:
             repos.create_orphan_branch('release')
     else:
         message('Looks like there is a release branch, but releases aren\'t implemented yet.')
+    repos.checkout(current_branch)
 
 def command_deploy(args, settings):
     error('Deploy functionality not implemented yet.')
+
+def command_clean(args, settings):
+    message("Running the clean command...")
+    do(settings['target']['clean_command'])
+    do_cleanup(args, settings)
+    message("Cleaning complete.")
 
 def save_version_file(version_info, filename):
     'Given the version info tuple and a format specifier, return a string in the specified metafile format'
@@ -315,6 +328,8 @@ def initialize_environment(args):
             'build_command' : 'make',
             'clean_command' : 'make clean',
             'version_file' : 'version.json',
+            'release_files' : ['bin/a.out'],
+            'release_format' : 'folder'
         }
     }
     ok = True
@@ -365,8 +380,11 @@ def parse_arguments():
     
     deploy_parser = subparsers.add_parser('deploy', help='Deploy the build')
     deploy_parser.set_defaults(func=command_deploy)
-    
-    all_parsers = (main_parser, init_parser, build_parser, tag_parser, release_parser, deploy_parser)
+   
+    clean_parser = subparsers.add_parser('clean', help='Clean the build')
+    clean_parser.set_defaults(func=command_clean)
+
+    all_parsers = (main_parser, init_parser, build_parser, tag_parser, release_parser, deploy_parser, clean_parser)
     for parser in all_parsers:
         parser.add_argument('--noconfirm', dest='confirm', action='store_false', default=True, help='Suppress any "Are you sure?" messages.')
         parser.add_argument('--noremote', dest='remote', action='store_false', default=True, help='Skip any git operations that push changes to a remote')
