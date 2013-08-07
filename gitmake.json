@@ -1,11 +1,10 @@
 {
     "target": {
-        "build_command": "echo 'Dummy Build'", 
-        "version_metafile_format": "python", 
+        "build_command": "python2 build.py", 
         "project_description": "A simple build system for projects in git.", 
         "clean_command": "echo 'Dummy Clean'", 
         "project_name": "Gitmake", 
-        "version_metafile": "version.py"
+        "version_file": "version.py"
     }, 
     "settings": {
         "build_directory": "_build"
