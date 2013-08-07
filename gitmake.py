@@ -83,7 +83,7 @@ class GitRepos(object):
     def get_branches(self):
         'Get the names of all branches.  The first one is the current branch'
         with cd(self.dir):
-            rc, output = do('git branch')
+            rc, output = do('git branch', show=False)
             retval = []
             for line in output.split('\n'):
                 if line.strip().startswith('*'):
@@ -98,9 +98,9 @@ class GitRepos(object):
     def get_git_tags(self, branch=None):
         with cd(self.dir):
             if branch:
-                rc, output = do('git tag -l v*.*.*-%s' % branch)
+                rc, output = do('git tag -l v*.*.*-%s' % branch, show=False)
             else:
-                rc, output = do('git tag -l v*.*.*-*')
+                rc, output = do('git tag -l v*.*.*-*', show=False)
             if rc != 0:
                 raise Exception("Couldn't get list of tags: %s" % output)
             versions = [x.strip() for x in output.split('\n') if x.strip() != '']
@@ -123,7 +123,7 @@ class GitRepos(object):
             self.commit(msg='Initial commit')
             self.push(branch)
 
-def do(command, show=False):
+def do(command, show=True):
     'Execute the provided command with the shell.  Show the output if specified. Return a tuple: (ret code, command output)'
     returncode = 0
     try:
@@ -134,7 +134,7 @@ def do(command, show=False):
         returncode = e.returncode
         output = e.output
     if(show):
-        print output
+        print output,
     return (returncode, output)
 
 def do_all(command_list, show=False, stop_on_error=True):
@@ -333,7 +333,7 @@ def load_settings():
 
 def check_environment():
     'Make sure the environment has all the prerequisites.'
-    retcode, output = do('git --version')
+    retcode, output = do('git --version',show=False)
     if retcode != 0:
         raise Exception("Failed environment check: %s" % output)
 
