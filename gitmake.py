@@ -7,7 +7,7 @@ import re
 import string
 
 # Version of this script
-version_info = (0,0,2,'master')
+version_info = (0,0,4,'master')
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
