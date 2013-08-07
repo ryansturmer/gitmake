@@ -231,7 +231,7 @@ def command_release(args, settings):
             do_all(['git checkout --orphan release', 'git rm -rf .'])
             with open('README','w') as fp:
                 fp.write('This is the releases branch.')
-            do_all(['git add README', 'git commit -m \'Initial commit\'', 'git push origin release'])
+            do_all(['git add README', 'git commit -m "Initial commit"', 'git push origin release'])
     else:
         message('Looks like there is a release branch, but releases aren\'t implemented yet.')
 
