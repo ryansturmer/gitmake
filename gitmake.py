@@ -9,6 +9,7 @@ from contextlib import contextmanager
 
 # Version of this script
 version_info = (0,0,8,'master')
+version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
@@ -357,6 +358,8 @@ def check_environment():
 
 def parse_arguments():
     main_parser = argparse.ArgumentParser()
+    main_parser.add_argument('--version', '-v', action='version', version=version_string)
+    
     subparsers = main_parser.add_subparsers(title="Command", description="The commands for gitmake.py are:", help="Command function")
     init_parser = subparsers.add_parser('init', help='Initialize the build environment')
     init_parser.set_defaults(func=command_init)
