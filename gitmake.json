@@ -1,10 +1,14 @@
 {
     "target": {
-        "build_command": "python build.py", 
-        "project_description": "A simple build system for projects in git.", 
-        "clean_command": "echo 'Dummy Clean'", 
-        "project_name": "Gitmake", 
-        "version_file": "version.py"
+        "build_command": "make", 
+        "version_file": "version.json", 
+        "clean_command": "make clean", 
+        "project_name": "My Project", 
+        "project_description": "The default gitmake project description.", 
+        "release_format": "folder", 
+        "release_files": [
+            "bin/a.out"
+        ]
     }, 
     "settings": {
         "build_directory": "_build"
