@@ -1,11 +1,13 @@
-import argparse
+from contextlib import contextmanager
 import time
+import argparse
 import json
 import os
 import subprocess
 import re
 import string
-from contextlib import contextmanager
+import zipfile
+import StringIO
 
 # Version of this script
 version_info = (0,0,6,'master')
@@ -215,10 +217,14 @@ def do_cleanup(args, settings):
     do('rm -Rf %s' % build_dir)
 
 def do_collect_release_data_here(args, settings):
+    'Collect all the specified files and return a ZipFile object'
     files = [os.path.abspath(f) for f in settings['target']['release_files']]
-    message(files)
+    s = StringIO.StringIO()
+    z = zipfile.ZipFile(s, 'w')
     for file in files:
+        z.write(file)
         message("Releasing this file: %s" % file)
+    return z
 
 def do_create_tag_here(args, settings):
     msg = args.message
@@ -227,7 +233,7 @@ def do_create_tag_here(args, settings):
     git_tags = repos.get_tags(git_branch)
     version_file = settings['target']['version_file']
     
-    # Get the latest released versione
+    # Get the latest released version
     if git_tags:
         current_version = git_tags[-1]
         message('Current version is %s.' % (current_version.tag))

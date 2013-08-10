@@ -1,13 +1,14 @@
 {
     "target": {
-        "build_command": "make", 
-        "version_file": "version.json", 
-        "clean_command": "make clean", 
-        "project_name": "My Project", 
-        "project_description": "The default gitmake project description.", 
-        "release_format": "folder", 
+        "build_command": "python build.py", 
+        "version_file": "version.py", 
+        "clean_command": "echo 'Clean!'", 
+        "project_name": "Gitmake", 
+        "project_description": "A simple tag/release script for git!", 
+        "release_format": "tgz", 
         "release_files": [
-            "bin/a.out"
+            "gitmake.py"
+            "README.md"
         ]
     }, 
     "settings": {
