@@ -8,7 +8,7 @@ import string
 from contextlib import contextmanager
 
 # Version of this script
-version_info = (0,0,0,'dev')
+version_info = (0,0,6,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
