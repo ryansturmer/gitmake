@@ -10,7 +10,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,6,'master')
+version_info = (0,0,0,'dev')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -314,6 +314,7 @@ def command_release(args, settings):
 
     # Create a build dir and go there
     build_dir = do_make_build_dir_here(args, settings) 
+    current_dir = os.getcwd()
     os.chdir(build_dir)
     do_clone_tag_here(args, settings)
     repos = GitRepos(remote=args.remote)
@@ -343,6 +344,8 @@ def command_release(args, settings):
     repos.add(filename)
     repos.commit(msg='Release of %s' % release_version.tag)
     repos.push('release')
+    repos.checkout('master')
+    os.chdir(current_dir)
 
 def command_deploy(args, settings):
     # step 1 execute deploy 
@@ -351,8 +354,8 @@ def command_deploy(args, settings):
 def command_clean(args, settings):
     'Function called by the "clean" command line'
     message("Running the clean command...")
-    do(settings['target']['clean_command'])
     do_cleanup(args, settings)
+    do(settings['target']['clean_command'])
     message("Cleaning complete.")
 
 def save_version_file(version_info, filename):
@@ -385,8 +388,9 @@ def initialize_environment(args):
             'build_command' : 'make',
             'clean_command' : 'make clean',
             'version_file' : 'version.json',
-            'release_files' : ['bin/a.out'],
-            'release_format' : 'folder'
+            'release_files' : [],
+            'release_format' : 'zip',
+            'release_filename' : 'myproject'
         }
     }
     ok = True

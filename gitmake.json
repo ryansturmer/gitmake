@@ -2,7 +2,7 @@
     "target": {
         "build_command": "python build.py", 
         "version_file": "version.py", 
-        "clean_command": "echo 'Clean!'", 
+        "clean_command": "rm *.pyc", 
         "project_name": "Gitmake", 
         "project_description": "A simple tag/release script for git!", 
         "release_format": "zip", 
