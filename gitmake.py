@@ -39,8 +39,10 @@ except:
 def cd(path):
     old_path = os.path.abspath(os.getcwd())
     new_path = os.path.abspath(path)
+    message("Changing to directory %s" % new_path)
     os.chdir(new_path)
     yield
+    message("Changing to directory %s" % old_path)
     os.chdir(old_path)
 
 class VersionInfo(object):
@@ -282,9 +284,9 @@ def command_build(args, settings):
     if args.tag:
         cwd = os.curdir
         build_dir = do_make_build_dir_here(args, settings)
-        os.chdir(build_dir)
-        do_clone_tag_here(args, settings)  
-        do_build_here(args, settings)
+        with cd(build_dir):
+            do_clone_tag_here(args, settings)  
+            do_build_here(args, settings)
     else:
         save_version_file(VersionInfo(), settings['build']['version_file'])
         do_build_here(args, settings)
@@ -339,10 +341,13 @@ def command_release(args, settings):
         sys.exit(1)
 
     # step 5: save if all looks good, add, commit push
+    message('Saving release bundle as %s' % filename)
     with open(filename, 'wb') as fp:
         fp.write(s)
+    message('Committing release %s to repository...' % release_version.tag)
     repos.add(filename)
     repos.commit(msg='Release of %s' % release_version.tag)
+    message('Pushing commit to remote...')
     repos.push('release')
     repos.checkout('master')
     os.chdir(current_dir)
@@ -468,3 +473,4 @@ if __name__ == "__main__":
     except Exception, e:
         error(str(e))
         raise e
+    message("Finished.")
