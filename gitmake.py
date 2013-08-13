@@ -39,6 +39,8 @@ except:
 def cd(path):
     old_path = os.path.abspath(os.getcwd())
     new_path = os.path.abspath(path)
+    if old_path == new_path:
+        return
     message("Changing to directory %s" % new_path)
     os.chdir(new_path)
     yield
@@ -213,7 +215,12 @@ def do_clone_tag_here(args, settings):
     url = repos.url
     message('Cloning repos %s and checking out tag %s to %s' % (url, args.tag, repos.dir))
     repos.clone()
-
+    if args.tag in repos.get_branches():
+        repos.checkout(args.tag)
+    else:
+        error('Cannot checkout %s: No such tag exists.')
+        system.exit(1)
+    
 def do_make_build_dir_here(args, settings):
     'Delete the build directory if it already exists, and create a new one here.  Return the path to the build dir.'
     build_dir = settings['settings']['build_directory']
