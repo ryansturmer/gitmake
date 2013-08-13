@@ -195,7 +195,7 @@ def command_init(args, settings):
 
 def do_build_here(args, settings):
     ' Perform the build in the current directory '
-    build_cmd = settings['target']['build_command']
+    build_cmd = settings['build']['build_command']
     message("Building...")
     retcode, output = do(build_cmd)
     if retcode == 0:
@@ -227,7 +227,7 @@ def do_cleanup(args, settings):
 
 def do_collect_release_data_here(args, settings):
     'Collect all the specified files and return a ZipFile object'
-    files = [os.path.abspath(f) for f in settings['target']['release_files']]
+    files = [os.path.abspath(f) for f in settings['release']['files']]
     s = StringIO.StringIO()
     with zipfile.ZipFile(s, 'w') as z:
         for file in files:
@@ -242,7 +242,7 @@ def do_create_tag_here(args, settings):
     repos = GitRepos(remote=args.remote)
     git_branch = repos.get_current_branch()
     git_tags = repos.get_tags(git_branch)
-    version_file = settings['target']['version_file']
+    version_file = settings['build']['version_file']
     
     # Get the latest released version
     if git_tags:
@@ -286,7 +286,7 @@ def command_build(args, settings):
         do_clone_tag_here(args, settings)  
         do_build_here(args, settings)
     else:
-        save_version_file(VersionInfo(), settings['target']['version_file'])
+        save_version_file(VersionInfo(), settings['build']['version_file'])
         do_build_here(args, settings)
 
 def command_tag(args, settings):
@@ -332,7 +332,7 @@ def command_release(args, settings):
     
     # step 3: switch to release branch
     # step 4: check for existing release (error if so, or maybe prompt?)
-    filename = settings['target']['release_filename'] + release_version.tag + '.zip'
+    filename = settings['release']['filename'] + release_version.tag + '.zip'
     repos.checkout('release')
     if os.path.exists(filename):
         error('Release bundle %s already exists.' % filename)
@@ -355,7 +355,7 @@ def command_clean(args, settings):
     'Function called by the "clean" command line'
     message("Running the clean command...")
     do_cleanup(args, settings)
-    do(settings['target']['clean_command'])
+    do(settings['build']['clean_command'])
     message("Cleaning complete.")
 
 def save_version_file(version_info, filename):
@@ -382,15 +382,19 @@ def initialize_environment(args):
         'settings': {
             'build_directory' : '_build'
         },
-        'target': {
-            'project_name' : 'My Project',
-            'project_description' : 'The default gitmake project description.',
+        'project': {
+            'name' : 'My Project',
+            'description' : 'The default gitmake project description.',
+        },
+        'build' : {
             'build_command' : 'make',
             'clean_command' : 'make clean',
-            'version_file' : 'version.json',
-            'release_files' : [],
-            'release_format' : 'zip',
-            'release_filename' : 'myproject'
+            'version_file' : 'version.json'
+        },
+        'release' : {
+            'files' : [],
+            'format' : 'zip',
+            'filename' : 'myproject'
         }
     }
     ok = True
