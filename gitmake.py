@@ -40,12 +40,13 @@ def cd(path):
     old_path = os.path.abspath(os.getcwd())
     new_path = os.path.abspath(path)
     if old_path == new_path:
-        return
-    message("Changing to directory %s" % new_path)
-    os.chdir(new_path)
-    yield
-    message("Changing to directory %s" % old_path)
-    os.chdir(old_path)
+        yield
+    else:
+        message("Changing to directory %s" % new_path)
+        os.chdir(new_path)
+        yield
+        message("Changing to directory %s" % old_path)
+        os.chdir(old_path)
 
 class VersionInfo(object):
     def __init__(self,major=0,minor=0,patch=0,branch='dev'):
