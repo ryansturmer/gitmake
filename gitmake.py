@@ -13,7 +13,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,0,'dev')
+version_info = (0,0,13,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -227,18 +227,17 @@ def do_build_here(args, settings):
        error("Build failed with error code %d" % retcode)
        return False
 
-def do_clone_tag_here(args, settings):
+def do_clone_tag_here(args, settings, requested_version):
     'Clone the remote origin of the current git repository to the current directory'
     repos = GitRepos()
     url = repos.url
     tags = repos.get_tags()
-    requested_tag = VersionInfo.from_string(args.tag)
-    message('Cloning repos %s and checking out tag %s' % (url, args.tag))
+    message('Cloning repos %s and checking out tag %s' % (url, requested_version.tag))
     repos.clone()
     if requested_tag in tags:
-        repos.checkout(requested_tag.tag)
+        repos.checkout(requested_version.tag)
     else:
-        error('Cannot checkout %s: No such tag exists. (%s)' % (args.tag,tags))
+        error('Cannot checkout %s: No such tag exists. (%s)' % (requested_version.tag,tags))
         sys.exit(1)
     
 def do_make_build_dir_here(args, settings):
@@ -314,7 +313,7 @@ def do_release(args, settings, release_version):
     build_dir = do_make_build_dir_here(args, settings) 
     current_dir = os.getcwd()
     os.chdir(build_dir)
-    do_clone_tag_here(args, settings)
+    do_clone_tag_here(args, settings, release_version)
     repos = GitRepos(remote=args.remote)
     all_branches = repos.get_branches()
     if 'release' not in all_branches and 'remotes/origin/release' not in all_branches:
@@ -354,7 +353,7 @@ def command_build(args, settings):
         cwd = os.curdir
         build_dir = do_make_build_dir_here(args, settings)
         with cd(build_dir):
-            do_clone_tag_here(args, settings)  
+            do_clone_tag_here(args, settings, VersionInfo.from_string(args.tag))  
             do_build_here(args, settings)
     else:
         save_version_file(VersionInfo(), settings['build']['version_file'])
