@@ -70,10 +70,12 @@ class VersionInfo(object):
     def rev_patch(self, branch=None):
         return VersionInfo(self.major,self.minor,self.patch+1,branch or self.branch)   
     def __cmp__(self, x):
-        if x.branch != self.branch:
-            raise ValueError("Cannot compare two versions from different branches")
+        if not isinstance(x, VersionInfo):
+            raise TypeError('Cannot compare VersionInfo and "%s" object' % str(type(x)))
         if self.tag == x.tag:
             return 0
+        if x.branch != self.branch:
+            return cmp(self.branch, x.branch)
         for a,b in ((self.major, x.major),(self.minor, x.minor), (self.patch, x.patch)):
             c = cmp(a,b)
             if c != 0:
@@ -135,7 +137,15 @@ class GitRepos(object):
             if rc != 0:
                 raise Exception("Couldn't get list of tags: %s" % output)
             versions = [x.strip() for x in output.split('\n') if x.strip() != '']
-            return sorted(map(lambda x : VersionInfo.from_string(x), versions))
+            retval = []
+            for version in versions:
+                try:
+                    retval.append(VersionInfo.from_string(version))
+                except:
+                    pass
+            print retval
+            retval.sort()
+            return retval
 
     def push(self, branch='master', remote='origin'):
         cmd = 'git push %s %s' % (remote, branch)
@@ -219,13 +229,15 @@ def do_clone_tag_here(args, settings):
     'Clone the remote origin of the current git repository to the current directory'
     repos = GitRepos()
     url = repos.url
-    message('Cloning repos %s and checking out tag %s to %s' % (url, args.tag, repos.dir))
+    tags = repos.get_tags()
+    requested_tag = VersionInfo.from_string(args.tag)
+    message('Cloning repos %s and checking out tag %s' % (url, args.tag))
     repos.clone()
-    if args.tag in repos.get_branches():
-        repos.checkout(args.tag)
+    if requested_tag in tags:
+        repos.checkout(requested_tag.tag)
     else:
-        error('Cannot checkout %s: No such tag exists.')
-        system.exit(1)
+        error('Cannot checkout %s: No such tag exists. (%s)' % (args.tag,tags))
+        sys.exit(1)
     
 def do_make_build_dir_here(args, settings):
     'Delete the build directory if it already exists, and create a new one here.  Return the path to the build dir.'
@@ -482,7 +494,7 @@ if __name__ == "__main__":
     settings = load_settings()
     check_environment()
     try:
-        arguments.func(arguments, settings)
+    arguments.func(arguments, settings)
     except Exception, e:
         error(str(e))
         raise e
