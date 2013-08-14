@@ -72,7 +72,12 @@ class VersionInfo(object):
     def __cmp__(self, x):
         if x.branch != self.branch:
             raise ValueError("Cannot compare two versions from different branches")
-        return cmp(self.tag, x.tag)
+        if self.tag == x.tag:
+            return 0
+        for a,b in ((self.major, x.major),(self.minor, x.minor), (self.patch, x.patch)):
+            c = cmp(a,b)
+            if c != 0:
+                return c
     @property
     def tag(self):
         return 'v%d.%d.%d-%s' % (self.major, self.minor, self.patch, self.branch)
