@@ -13,7 +13,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,14,'master')
+version_info = (0,0,15,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -101,6 +101,10 @@ class GitRepos(object):
     def checkout(self, branch):
         with cd(self.dir):
             do('git checkout %s' % branch)
+    
+    def reset(self):
+        with cd(self.dir):
+            do('git reset --hard HEAD')
 
     def commit(self, all=False, msg=''):
         with cd(self.dir):
@@ -311,41 +315,48 @@ def do_release(args, settings, release_version):
      
     # Create a build dir and go there
     build_dir = do_make_build_dir_here(args, settings) 
-    current_dir = os.getcwd()
-    os.chdir(build_dir)
-    do_clone_tag_here(args, settings, release_version)
-    repos = GitRepos(remote=args.remote)
-    all_branches = repos.get_branches()
-    if 'release' not in all_branches and 'remotes/origin/release' not in all_branches:
-        create_release_branch = True
-        if args.confirm:
-            create_release_branch = confirm('No branch exists for releases.  Create one?', True)
-        if create_release_branch:
-            repos.create_orphan_branch('release')
-    
-    # step 1: collect files
-    # step 2: create bundle
-    s = do_collect_release_data_here(args, settings)
-    
-    # step 3: switch to release branch
-    # step 4: check for existing release (error if so, or maybe prompt?)
-    filename = settings['release']['filename'] + release_version.tag + '.zip'
-    repos.checkout('release')
-    if os.path.exists(filename):
-        error('Release bundle %s already exists.' % filename)
-        sys.exit(1)
+    with cd(build_dir):
+        
+        # clone the tag to a fresh build directory
+        do_clone_tag_here(args, settings, release_version)
+        repos = GitRepos(remote=args.remote)
+        
+        # do a build.  don't release it if unsuccessful
+        ok_to_release = do_build_here(args, settings)
 
-    # step 5: save if all looks good, add, commit push
-    message('Saving release bundle as %s' % filename)
-    with open(filename, 'wb') as fp:
-        fp.write(s)
-    message('Committing release %s to repository...' % release_version.tag)
-    repos.add(filename)
-    repos.commit(msg='Release of %s' % release_version.tag)
-    message('Pushing commit to remote...')
-    repos.push('release')
-    repos.checkout('master')
-    os.chdir(current_dir)
+        if ok_to_release:
+            # create a release branch if needed
+            all_branches = repos.get_branches()
+            if 'release' not in all_branches and 'remotes/origin/release' not in all_branches:
+                create_release_branch = True
+                if args.confirm:
+                    create_release_branch = confirm('No branch exists for releases.  Create one?', True)
+                if create_release_branch:
+                    repos.create_orphan_branch('release')
+           
+            # create bundle
+            s = do_collect_release_data_here(args, settings)
+            
+            filename = settings['release']['filename'] + release_version.tag + '.zip'
+            repos.reset()
+            repos.checkout('release')
+            if os.path.exists(filename):
+                error('Release bundle %s already exists.' % filename)
+                sys.exit(1)
+
+            # save if all looks good, add, commit push
+            message('Saving release bundle as %s' % filename)
+            with open(filename, 'wb') as fp:
+                fp.write(s)
+            message('Committing release %s to repository...' % release_version.tag)
+            repos.add(filename)
+            repos.commit(msg='Release of %s' % release_version.tag)
+            message('Pushing commit to remote...')
+            repos.push('release')
+            repos.checkout('master')
+        else:
+            error('No release because build was unsuccessful.')
+            sys.exit(1)
 
 def command_build(args, settings):
     'Function called by the "build" command line'
