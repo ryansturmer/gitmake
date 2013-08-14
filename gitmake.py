@@ -5,6 +5,7 @@ import time
 import argparse
 import json
 import os
+import sys
 import subprocess
 import re
 import string
@@ -12,7 +13,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,10,'master')
+version_info = (0,0,0,'dev')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -304,42 +305,11 @@ def do_create_tag_here(args, settings):
     repos.push(new_version.tag)
 
     message('Tag %s created successfully.' % new_version.tag)
+    return new_version
 
-def command_build(args, settings):
-    'Function called by the "build" command line'
-    if args.tag:
-        cwd = os.curdir
-        build_dir = do_make_build_dir_here(args, settings)
-        with cd(build_dir):
-            do_clone_tag_here(args, settings)  
-            do_build_here(args, settings)
-    else:
-        save_version_file(VersionInfo(), settings['build']['version_file'])
-        do_build_here(args, settings)
-
-def command_tag(args, settings):
-    'Function called by the "tag" command line'
-    do_cleanup(args, settings)
-    
-    # Build first in order to determine if it's OK to tag
-    ok_to_tag = do_build_here(args, settings)
-    if not ok_to_tag and args.confirm:
-        ok_to_tag = confirm("The build failed.  Are you sure you want to create a tag here? (y/N)", False)
-    
-    if ok_to_tag:
-        do_create_tag_here(args, settings) 
-    
-def command_release(args, settings):
+def do_release(args, settings, release_version):
     'Function called by the "release" command line'
      
-    # Check to make sure that this is a legit release version at least
-    try:
-        release_version = VersionInfo.from_string(args.tag)
-    except ValueError, e:
-        error(e)
-        raise e
-        sys.exit(1)
-
     # Create a build dir and go there
     build_dir = do_make_build_dir_here(args, settings) 
     current_dir = os.getcwd()
@@ -377,6 +347,38 @@ def command_release(args, settings):
     repos.push('release')
     repos.checkout('master')
     os.chdir(current_dir)
+
+def command_build(args, settings):
+    'Function called by the "build" command line'
+    if args.tag:
+        cwd = os.curdir
+        build_dir = do_make_build_dir_here(args, settings)
+        with cd(build_dir):
+            do_clone_tag_here(args, settings)  
+            do_build_here(args, settings)
+    else:
+        save_version_file(VersionInfo(), settings['build']['version_file'])
+        do_build_here(args, settings)
+
+def command_tag(args, settings):
+    'Function called by the "tag" command line'
+    do_cleanup(args, settings)
+    
+    # Build first in order to determine if it's OK to tag
+    ok_to_tag = do_build_here(args, settings)
+    if not ok_to_tag and args.confirm:
+        ok_to_tag = confirm("The build failed.  Are you sure you want to create a tag here? (y/N)", False)
+    
+    if ok_to_tag:
+        new_version = do_create_tag_here(args, settings) 
+    
+        if args.release:
+            do_release(args, settings, new_version)
+
+
+def command_release(args, settings):
+    version = VersionInfo.from_string(args.tag)
+    do_release(args, settings, version)
 
 def command_deploy(args, settings):
     # step 1 execute deploy 
@@ -473,7 +475,8 @@ def parse_arguments():
     group.add_argument('--major', dest='major', action='store_true', default=False, help='Tag is for a major revision')
     group.add_argument('--minor', dest='minor', action='store_true', default=False, help='Tag is for a minor revision')
     group.add_argument('--patch', dest='patch', action='store_true', default=False, help='Tag is for a patch revision')
-
+    tag_parser.add_argument('--release', '-r', action='store_true', help='Perform a release after tagging.', default=False)
+    
     release_parser = subparsers.add_parser('release', help='Create a release')
     release_parser.set_defaults(func=command_release)
     release_parser.add_argument('--from-tag', type=str, metavar='TAG', dest='tag', help='Check out the specified tag and perform the release from it. (Does not modify local source)')
