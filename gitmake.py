@@ -496,7 +496,7 @@ if __name__ == "__main__":
     settings = load_settings()
     check_environment()
     try:
-    arguments.func(arguments, settings)
+        arguments.func(arguments, settings)
     except Exception, e:
         error(str(e))
         raise e
