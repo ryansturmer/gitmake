@@ -12,7 +12,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,0,'dev')
+version_info = (0,0,10,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -145,7 +145,6 @@ class GitRepos(object):
                     retval.append(VersionInfo.from_string(version))
                 except:
                     pass
-            print retval
             retval.sort()
             return retval
 
