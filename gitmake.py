@@ -13,7 +13,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,13,'master')
+version_info = (0,0,14,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -234,7 +234,7 @@ def do_clone_tag_here(args, settings, requested_version):
     tags = repos.get_tags()
     message('Cloning repos %s and checking out tag %s' % (url, requested_version.tag))
     repos.clone()
-    if requested_tag in tags:
+    if requested_version in tags:
         repos.checkout(requested_version.tag)
     else:
         error('Cannot checkout %s: No such tag exists. (%s)' % (requested_version.tag,tags))
