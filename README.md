@@ -28,19 +28,11 @@ When you are happy with your build, you can create a release tag:
 
 `python gitmake.py tag`
 
-Gitmake will prompt you for the type of release you are tagging (major, minor, patch) If you like, you can specify --major, --minor, or --patch on the command line as an argument to the tag command, rather than being prompted:
+Gitmake will prompt you for the type of release you are tagging (major, minor, patch). If you like, you can specify --major, --minor, or --patch on the command line as an argument to the tag command, rather than being prompted:
 
 `python gitmake.py tag --minor`
 
 Release tags are immediately pushed to the current remote, unless the `--noremote` option is used.
-
-Release
--------
-To create a release bundle, use the release command:
-
-`python gitmake.py release --from-tag=v1.2.3-master`
-
-The command above will fetch and build the tag v1.2.3-master.  If the build is successful, the build products will be bundled and copied to the *release* branch under the release version name.
 
 Building from an Already-Created Release Tag
 --------------------------------------------
@@ -50,8 +42,22 @@ Release tags that have already been created can be fetched and built any time, b
 
 When --from-tag is specified, the build command will create a clean build directory, clone the repository into it, checkout the specified tag and perform a build there.
 
+Release
+-------
+To create a release bundle, use the release command:
+
+`python gitmake.py release --from-tag=v1.2.3-master`
+
+The command above will fetch and build the tag v1.2.3-master.  If the build is successful, the build products will be bundled and copied to the *release* branch under the release version name.
+
+Tag and Release Workflow
+------------------------
+To create a tag and immediately generate a release bundle from it, you can pass the --release switch to the `tag` command:
+
+python gitmake.py tag --release
+
+This will perform the tag operation (prompting you for a rev level) and if successful, perform a release operation afterward, as if you had issued the `release` command.
+
 Version File
 ------------
-It's frequently handy for a build to track it's own version number and include it in the code.  If specified, a version file will be created when tagging a release that specifies the major, minor, patch, and branch fields of the version string.  The format of the version file will be derived from its extension.  The currently supported formats are C/C++, JSON, and Python.  
-
-
+It's frequently handy for a build to track it's own version number and include it in the code.  If specified, a version file will be created when tagging a release that specifies the major, minor, patch, and branch fields of the version string.  The format of the version file will be derived from its extension.  The currently supported formats are C/C++, JSON, and Python.

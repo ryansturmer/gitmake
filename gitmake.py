@@ -13,13 +13,13 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,23,'master')
+version_info = (0,0,0,'dev')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
 GITMAKE_MSG = '[GITMAKE] '
-
+RELEASE_BRANCH_NAME = 'release'
 try:
     import colorama
     colorama.init()
@@ -213,10 +213,8 @@ def confirm(message, default=True):
         elif v.startswith('n'):
             return False
 
-def do_build_here(args, settings):
-    ' Perform the build in the current directory '
-    build_cmd = settings['build']['build_command']
-    message("Building...")
+def do_build_here(build_cmd):
+    message("Building")
     retcode, output = do(build_cmd)
     if retcode == 0:
        message("Build succeeded.")
@@ -225,18 +223,18 @@ def do_build_here(args, settings):
        error("Build failed with error code %d" % retcode)
        return False
 
-def do_clone_tag_here(args, settings, requested_version):
-    'Clone the remote origin of the current git repository to the current directory'
-    repos = GitRepos()
-    url = repos.url
-    tags = repos.get_tags()
-    message('Cloning repos %s and checking out tag %s' % (url, requested_version.tag))
+def do_clone_here(url, version=None):
+    repos = GitRepos(url=url)
+    message('Cloning repos %s' % url)
     repos.clone()
-    if requested_version in tags:
-        repos.checkout(requested_version.tag)
-    else:
-        error('Cannot checkout %s: No such tag exists. (%s)' % (requested_version.tag,tags))
-        sys.exit(1)
+    if version:
+        tags = repos.get_tags()
+        if version in tags:
+            message('Checking out %s' % version.tag)
+            repos.checkout(version.tag)
+        else:
+            error('Cannot checkout %s: No such tag exists.' % version.tag)
+            sys.exit(1)
     
 def do_make_build_dir_here(args, settings):
     'Delete the build directory if it already exists, and create a new one here.  Return the path to the build dir.'
@@ -263,34 +261,14 @@ def do_collect_release_data_here(args, settings):
     s.close()
     return data
 
-def do_create_tag_here(args, settings):
-    msg = args.message
-    repos = GitRepos(remote=args.remote)
-    git_branch = repos.get_current_branch()
-    git_tags = repos.get_tags(git_branch)
-    version_file = settings['build']['version_file']
-    
-    # Get the latest released version
-    if git_tags:
-        current_version = git_tags[-1]
-        message('Current version is %s.' % (current_version.tag))
-    else:
-        message('No previous releases.')
-        current_version = VersionInfo(branch=git_branch)
-        
-    # Increment the version number
-    if args.major:
-        new_version = current_version.rev_major(git_branch)
-    elif args.minor:
-        new_version = current_version.rev_minor(git_branch)
-    elif args.patch:
-        new_version = current_version.rev_patch(git_branch)
-    else:
-        # TODO prompt here for major/minor/patch
-        error('No rev level specified for tag.')
+def do_create_tag_here(version_info, version_file, remote=True, msg=''):
+   
+    repos = GitRepos(remote=remote)
 
-    
-    # TODO : CHECK FOR A CLEAN REPOS HERE. DON'T ADD AND COMMIT A VERSION FILE IF THERE'S LOCAL CHANGES
+    message('Getting new version number')
+    new_version = do_get_version_increment_here(args)
+
+    # TODO : CHECK FOR A CLEAN REPOS. DON'T ADD AND COMMIT A VERSION FILE IF THERE'S LOCAL CHANGES
 
     message('Committing version file "%s" for tag %s.' % (version_file, new_version.tag))
     save_version_file(new_version, version_file)
@@ -304,35 +282,68 @@ def do_create_tag_here(args, settings):
     message('Tag %s created successfully.' % new_version.tag)
     return new_version
 
-def do_release(args, settings, release_version):
-     
+def do_get_version_increment_here(args):
+    # Current branch is assumed to be the one we want to tag
+    repos = GitRepos()
+    git_branch = repos.get_current_branch()
+    git_tags = repos.get_tags(git_branch)
+    
+    # Get the latest released version
+    if git_tags:
+        current_version = git_tags[-1]
+        message('Current version is %s.' % (current_version.tag))
+    else:
+        message('No previous releases.')
+        current_version = VersionInfo(branch=git_branch) # v0.0.0-branch
+    
+    # Prompt for a new version if none was specified on the command line
+    choice = ''
+    if not args.major and not args.minor and not args.patch:
+        while choice not in 'mip':
+            choice = (raw_input('Revision level for tag? ([m]ajor, m[i]nor, [p]atch): ') + ' ')[0].lower()
+        
+    # Increment the version number
+    if args.major or choice == 'm':
+        new_version = current_version.rev_major(git_branch)
+    elif args.minor or choice == 'i':
+        new_version = current_version.rev_minor(git_branch)
+    elif args.patch or choice == 'p':
+        new_version = current_version.rev_patch(git_branch)
+    else:
+        raise Exception("Should never get here.")
+    return new_version
+
+def do_release(release_version, build_cmd):
+    # Get the url of the current repos
+    url = GitRepos().url
+
     # Create a build dir and go there
     build_dir = do_make_build_dir_here(args, settings) 
     with cd(build_dir):
         
-        # clone the tag to a fresh build directory
-        do_clone_tag_here(args, settings, release_version)
+        # clone the tag to the fresh build directory
+        do_clone_here(url, release_version)
         repos = GitRepos(remote=args.remote)
         
         # do a build.  don't release it if unsuccessful
-        ok_to_release = do_build_here(args, settings)
+        ok_to_release = do_build_here(build_cmd)
 
         if ok_to_release:
             # create a release branch if needed
             all_branches = repos.get_branches()
-            if 'release' not in all_branches and 'remotes/origin/release' not in all_branches:
+            if RELEASE_BRANCH_NAME not in all_branches and 'remotes/origin/%s' % RELEASE_BRANCH_NAME not in all_branches:
                 create_release_branch = True
                 if args.confirm:
                     create_release_branch = confirm('No branch exists for releases.  Create one?', True)
                 if create_release_branch:
-                    repos.create_orphan_branch('release')
+                    repos.create_orphan_branch(RELEASE_BRANCH_NAME)
            
             # create bundle
             s = do_collect_release_data_here(args, settings)
             
             filename = settings['release']['filename'] + release_version.tag + '.zip'
             repos.reset()
-            repos.checkout('release')
+            repos.checkout(RELEASE_BRANCH_NAME)
             if os.path.exists(filename):
                 error('Release bundle %s already exists.' % filename)
                 sys.exit(1)
@@ -341,11 +352,11 @@ def do_release(args, settings, release_version):
             message('Saving release bundle as %s' % filename)
             with open(filename, 'wb') as fp:
                 fp.write(s)
-            message('Committing release %s to repository...' % release_version.tag)
+            message('Committing release %s to repository' % release_version.tag)
             repos.add(filename)
             repos.commit(msg='Release of %s' % release_version.tag)
-            message('Pushing commit to remote...')
-            repos.push('release')
+            message('Pushing commit to remote')
+            repos.push(RELEASE_BRANCH_NAME)
             repos.checkout('master')
         else:
             error('No release because build was unsuccessful.')
@@ -353,7 +364,7 @@ def do_release(args, settings, release_version):
 
 def command_init(args, settings):
     'Function called from the "init" command line'
-    message("Initializing build environment...")
+    message("Initializing build environment")
     initialize_environment(args)
     message("Done.")
 
@@ -364,14 +375,15 @@ def command_build(args, settings):
         build_dir = do_make_build_dir_here(args, settings)
         with cd(build_dir):
             do_clone_tag_here(args, settings, VersionInfo.from_string(args.tag))  
-            do_build_here(args, settings)
+            do_build_here(settings['build']['build_command'])
     else:
         save_version_file(VersionInfo(), settings['build']['version_file'])
-        do_build_here(args, settings)
+        do_build_here(settings['build']['build_command'])
 
 def command_tag(args, settings):
     'Function called by the "tag" command line'
     do_cleanup(args, settings)
+    version_file = settings['build']['version_file'] 
     
     # Build first in order to determine if it's OK to tag
     ok_to_tag = do_build_here(args, settings)
@@ -379,7 +391,7 @@ def command_tag(args, settings):
         ok_to_tag = confirm("The build failed.  Are you sure you want to create a tag here? (y/N)", False)
     
     if ok_to_tag:
-        new_version = do_create_tag_here(args, settings) 
+        new_version = do_create_tag_here(version_file=version_file, remote=args.remote, msg=args.msg) 
     
         if args.release:
             do_release(args, settings, new_version)
@@ -395,7 +407,7 @@ def command_deploy(args, settings):
 
 def command_clean(args, settings):
     'Function called by the "clean" command line'
-    message("Running the clean command...")
+    message("Running the clean command")
     do_cleanup(args, settings)
     do(settings['build']['clean_command'])
     message("Cleaning complete.")
