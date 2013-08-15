@@ -396,13 +396,11 @@ def command_tag(args, settings):
         if args.release:
             do_release(args, settings, new_version)
 
-
 def command_release(args, settings):
     version = VersionInfo.from_string(args.tag)
     do_release(args, settings, version)
 
 def command_deploy(args, settings):
-    # step 1 execute deploy 
     error('Deploy functionality not implemented yet.')
 
 def command_clean(args, settings):
@@ -411,6 +409,12 @@ def command_clean(args, settings):
     do_cleanup(args, settings)
     do(settings['build']['clean_command'])
     message("Cleaning complete.")
+
+def command_update(args, settings):
+    error('gitmake update is not currently supported.')
+    # Fetch from releases on github (maybe use github public api)
+    # Unzip into memory
+    # Overwrite github.py
 
 def save_version_file(version_info, filename):
     'Take the version info provided and write to file.  File format is determined from the extension of the filename given.'
@@ -508,10 +512,14 @@ def parse_arguments():
     clean_parser = subparsers.add_parser('clean', help='Clean the build')
     clean_parser.set_defaults(func=command_clean)
 
+    update_parser = subparsers.add_parser('update', help='Update gitmake.py')
+    update_parser.set_defaults(func=command_update)
+
     all_parsers = (main_parser, init_parser, build_parser, tag_parser, release_parser, deploy_parser, clean_parser)
     for parser in all_parsers:
         parser.add_argument('--noconfirm', dest='confirm', action='store_false', default=True, help='Suppress any "Are you sure?" messages.')
         parser.add_argument('--noremote', dest='remote', action='store_false', default=True, help='Skip any git operations that push changes to a remote')
+    
     return main_parser.parse_args()
 
 if __name__ == "__main__":
