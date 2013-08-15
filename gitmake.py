@@ -255,7 +255,7 @@ def do_collect_release_data_here(args, settings):
     s = StringIO.StringIO()
     with zipfile.ZipFile(s, 'w') as z:
         for file in files:
-            z.write(file)
+            z.write(file, arcname = os.path.split(f)[1])
             message("Releasing this file: %s" % file)
     data = s.getvalue()
     s.close()
