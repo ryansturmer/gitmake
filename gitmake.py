@@ -261,12 +261,10 @@ def do_collect_release_data_here(args, settings):
     s.close()
     return data
 
-def do_create_tag_here(version_info, version_file, remote=True, msg=''):
+def do_create_tag_here(new_version, version_file, remote=True, msg=''):
    
     repos = GitRepos(remote=remote)
 
-    message('Getting new version number')
-    new_version = do_get_version_increment_here(args)
 
     # TODO : CHECK FOR A CLEAN REPOS. DON'T ADD AND COMMIT A VERSION FILE IF THERE'S LOCAL CHANGES
 
@@ -391,14 +389,17 @@ def command_tag(args, settings):
         ok_to_tag = confirm("The build failed.  Are you sure you want to create a tag here? (y/N)", False)
     
     if ok_to_tag:
-        new_version = do_create_tag_here(version_file=version_file, remote=args.remote, msg=args.msg) 
+    
+        message('Getting new version number')
+        new_version = do_get_version_increment_here(args)
+        do_create_tag_here(new_version, version_file=version_file, remote=args.remote, msg=args.message) 
     
         if args.release:
-            do_release(args, settings, new_version)
+            do_release(new_version, settings['build']['build_command'])
 
 def command_release(args, settings):
-    version = VersionInfo.from_string(args.tag)
-    do_release(args, settings, version)
+    new_version = VersionInfo.from_string(args.tag)
+    do_release(new_version, settings['build']['build_command'])
 
 def command_deploy(args, settings):
     error('Deploy functionality not implemented yet.')
@@ -526,9 +527,10 @@ if __name__ == "__main__":
     arguments = parse_arguments()
     settings = load_settings()
     check_environment()
-    try:
-        arguments.func(arguments, settings)
-    except Exception, e:
-        error(str(e))
-        raise e
+    arguments.func(arguments, settings)
+    #try:
+    #    arguments.func(arguments, settings)
+    #except Exception, e:
+    #    error(str(e))
+    #    raise e
     message("Finished.")
