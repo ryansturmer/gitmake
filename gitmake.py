@@ -13,7 +13,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,0,'dev')
+version_info = (0,0,25,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -311,7 +311,7 @@ def do_get_version_increment_here(args):
         raise Exception("Should never get here.")
     return new_version
 
-def do_release(release_version, build_cmd):
+def do_release(args, settings, release_version):
     # Get the url of the current repos
     url = GitRepos().url
 
@@ -324,7 +324,7 @@ def do_release(release_version, build_cmd):
         repos = GitRepos(remote=args.remote)
         
         # do a build.  don't release it if unsuccessful
-        ok_to_release = do_build_here(build_cmd)
+        ok_to_release = do_build_here(settings['build']['build_command'])
 
         if ok_to_release:
             # create a release branch if needed
@@ -395,11 +395,11 @@ def command_tag(args, settings):
         do_create_tag_here(new_version, version_file=version_file, remote=args.remote, msg=args.message) 
     
         if args.release:
-            do_release(new_version, settings['build']['build_command'])
+            do_release(args, settings, new_version)
 
 def command_release(args, settings):
     new_version = VersionInfo.from_string(args.tag)
-    do_release(new_version, settings['build']['build_command'])
+    do_release(args, settings, new_version)
 
 def command_deploy(args, settings):
     error('Deploy functionality not implemented yet.')
