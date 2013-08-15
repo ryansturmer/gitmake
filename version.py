@@ -1,5 +1,5 @@
 major = 0
 minor=0
-patch=18
+patch=19
 branch="master"
-timestamp=1376526164.38
+timestamp=1376526199.16
