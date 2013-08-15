@@ -38,3 +38,6 @@ nosetests.xml
 *~
 *.swp
 *.bak
+
+# Gitmake specific: the specified build directory
+_build
