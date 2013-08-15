@@ -13,7 +13,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,15,'master')
+version_info = (0,0,23,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
@@ -24,11 +24,11 @@ try:
     import colorama
     colorama.init()
     def message(s):
-        print colorama.Fore.CYAN + GITMAKE_MSG + str(s) + colorama.Fore.RESET
+        print str(colorama.Fore.CYAN + GITMAKE_MSG + str(s) + colorama.Fore.RESET)
     def error(s):
-        print colorama.Fore.CYAN + GITMAKE_MSG + colorama.Fore.RED + str(s) + colorama.Fore.RESET
+        print str(colorama.Fore.CYAN + GITMAKE_MSG + colorama.Fore.RED + str(s) + colorama.Fore.RESET)
     def command(s):
-        print colorama.Fore.GREEN + str(s) + colorama.Fore.RESET
+        print str(colorama.Fore.GREEN + str(s) + colorama.Fore.RESET)
 except:
     def message(s):
         print GITMAKE_MSG + str(s)
@@ -180,13 +180,13 @@ def do(cmd, show=True):
     returncode = 0
     try:
         if show:
-            command(cmd)
+            command(cmd.strip())
         output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError, e:
         returncode = e.returncode
         output = e.output
     if(show):
-        print output,
+        print str(output.strip())
     return (returncode, output)
 
 def do_all(command_list, show=False, stop_on_error=True):
@@ -212,12 +212,6 @@ def confirm(message, default=True):
             return True
         elif v.startswith('n'):
             return False
-
-def command_init(args, settings):
-    'Function called from the "init" command line'
-    message("Initializing build environment...")
-    initialize_environment(args)
-    message("Done.")
 
 def do_build_here(args, settings):
     ' Perform the build in the current directory '
@@ -311,7 +305,6 @@ def do_create_tag_here(args, settings):
     return new_version
 
 def do_release(args, settings, release_version):
-    'Function called by the "release" command line'
      
     # Create a build dir and go there
     build_dir = do_make_build_dir_here(args, settings) 
@@ -357,6 +350,12 @@ def do_release(args, settings, release_version):
         else:
             error('No release because build was unsuccessful.')
             sys.exit(1)
+
+def command_init(args, settings):
+    'Function called from the "init" command line'
+    message("Initializing build environment...")
+    initialize_environment(args)
+    message("Done.")
 
 def command_build(args, settings):
     'Function called by the "build" command line'
