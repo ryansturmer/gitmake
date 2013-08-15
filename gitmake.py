@@ -386,7 +386,7 @@ def command_tag(args, settings):
     version_file = settings['build']['version_file'] 
     
     # Build first in order to determine if it's OK to tag
-    ok_to_tag = do_build_here(args, settings)
+    ok_to_tag = do_build_here(settings['build']['build_command'])
     if not ok_to_tag and args.confirm:
         ok_to_tag = confirm("The build failed.  Are you sure you want to create a tag here? (y/N)", False)
     
