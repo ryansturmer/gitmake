@@ -1,6 +1,6 @@
 Gitmake
 =======
-Gitmake is a configurable script that automates the process of tagging and releasing your code.  Gitmake isn't a replacement for make, cmake, scons, or whatever you currently use to build your code.  It simply strives to make it easy to tag and release code using git.
+Gitmake is a configurable script that automates the process of tagging and releasing your code.  Gitmake isn't a replacement for make, cmake, scons, bash or whatever you currently use to build your code.  It simply strives to make it easy to tag and release code using git.
 
 Philosophy
 ----------
