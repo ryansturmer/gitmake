@@ -426,6 +426,7 @@ def command_update(args, settings):
     # Fetch from releases on github (maybe use github public api)
     # Unzip into memory
     # Overwrite github.py
+    do_update()
 
 def save_version_file(version_info, filename):
     'Take the version info provided and write to file.  File format is determined from the extension of the filename given.'
