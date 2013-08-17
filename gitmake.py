@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import urllib2
 from contextlib import contextmanager
 import time
 import argparse
@@ -13,13 +13,15 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,25,'master')
+version_info = (0,0,26,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
 GITMAKE_MSG = '[GITMAKE] '
 RELEASE_BRANCH_NAME = 'release'
+UPDATE_URL = 'https://github.com/ryansturmer/gitmake/blob/release/gitmake-{tag}.zip'
+
 try:
     import colorama
     colorama.init()
@@ -339,7 +341,7 @@ def do_release(args, settings, release_version):
             # create bundle
             s = do_collect_release_data_here(args, settings)
             
-            filename = settings['release']['filename'] + release_version.tag + '.zip'
+            filename = settings['release']['filename'] + '-' + release_version.tag + '.zip'
             repos.reset()
             repos.checkout(RELEASE_BRANCH_NAME)
             if os.path.exists(filename):
@@ -359,6 +361,15 @@ def do_release(args, settings, release_version):
         else:
             error('No release because build was unsuccessful.')
             sys.exit(1)
+
+def do_update(tag):
+    url = string.Template(UPDATE_URL).substitute({'tag':tag})
+    message("Retrieving update from %s" % url)
+    with urllib2.urlopen(url) as fp:
+        z = ZipFile(tag)
+    message("No writing yet, just printing a list:")
+    print z.namelist()
+    #z.extract('gitmake.py')
 
 def command_init(args, settings):
     'Function called from the "init" command line'
@@ -412,7 +423,6 @@ def command_clean(args, settings):
     message("Cleaning complete.")
 
 def command_update(args, settings):
-    error('gitmake update is not currently supported.')
     # Fetch from releases on github (maybe use github public api)
     # Unzip into memory
     # Overwrite github.py
