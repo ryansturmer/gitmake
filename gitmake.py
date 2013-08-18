@@ -13,14 +13,14 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,26,'master')
+version_info = (0,0,27,'master')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'
 SETTINGS_FILENAME = 'gitmake.json'
 GITMAKE_MSG = '[GITMAKE] '
 RELEASE_BRANCH_NAME = 'release'
-UPDATE_URL = 'https://github.com/ryansturmer/gitmake/blob/release/gitmake-{tag}.zip'
+UPDATE_URL = 'https://github.com/ryansturmer/gitmake/blob/release/gitmake-$tag.zip?raw=true'
 
 try:
     import colorama
@@ -365,11 +365,12 @@ def do_release(args, settings, release_version):
 def do_update(tag):
     url = string.Template(UPDATE_URL).substitute({'tag':tag})
     message("Retrieving update from %s" % url)
-    with urllib2.urlopen(url) as fp:
-        z = ZipFile(tag)
-    message("No writing yet, just printing a list:")
-    print z.namelist()
-    #z.extract('gitmake.py')
+    fp = urllib2.urlopen(url)
+    s = fp.read()
+    fp.close()
+    message("Update is %0.2fkB" % len(s))
+    z = zipfile.ZipFile(StringIO.StringIO(s))
+    z.extract('gitmake.py')
 
 def command_init(args, settings):
     'Function called from the "init" command line'
@@ -426,7 +427,7 @@ def command_update(args, settings):
     # Fetch from releases on github (maybe use github public api)
     # Unzip into memory
     # Overwrite github.py
-    do_update()
+    do_update(args.tag)
 
 def save_version_file(version_info, filename):
     'Take the version info provided and write to file.  File format is determined from the extension of the filename given.'
@@ -526,6 +527,7 @@ def parse_arguments():
 
     update_parser = subparsers.add_parser('update', help='Update gitmake.py')
     update_parser.set_defaults(func=command_update)
+    update_parser.add_argument('--from-tag', type=str, metavar='TAG', dest='tag', help='Check out the specified tag and perform the build from it. (Does not modify local source)')
 
     all_parsers = (main_parser, init_parser, build_parser, tag_parser, release_parser, deploy_parser, clean_parser)
     for parser in all_parsers:
