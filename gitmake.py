@@ -257,7 +257,7 @@ def do_collect_release_data_here(args, settings):
     s = StringIO.StringIO()
     with zipfile.ZipFile(s, 'w') as z:
         for file in files:
-            z.write(file, arcname = os.path.split(f)[1])
+            z.write(file, arcname = os.path.split(file)[1])
             message("Releasing this file: %s" % file)
     data = s.getvalue()
     s.close()
@@ -368,8 +368,10 @@ def do_update(tag):
     fp = urllib2.urlopen(url)
     s = fp.read()
     fp.close()
-    message("Update is %0.2fkB" % len(s))
+    message("Update is %0.2fkB" % (len(s)/1000.0))
     z = zipfile.ZipFile(StringIO.StringIO(s))
+    #print z.namelist()
+    message('Extracting gitmake.py')
     z.extract('gitmake.py')
 
 def command_init(args, settings):
