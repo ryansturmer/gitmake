@@ -13,7 +13,7 @@ import zipfile
 import StringIO
 
 # Version of this script
-version_info = (0,0,27,'master')
+version_info = (0,0,0,'dev')
 version_string = 'v%d.%d.%d-%s' % version_info
 
 VERSION_FILENAME = 'version.json'

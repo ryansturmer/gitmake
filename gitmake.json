@@ -4,7 +4,7 @@
         "description": "A simple build/release manager for git."
     }, 
     "release": {
-        "files": ["gitmake.py", "README.md"], 
+        "files": ["_output/gitmake.py", "README.md"], 
         "filename": "gitmake", 
         "format": "zip"
     }, 
