@@ -297,7 +297,7 @@ def do_get_version_increment_here(args):
         current_version = VersionInfo(branch=git_branch) # v0.0.0-branch
     
     # Prompt for a new version if none was specified on the command line
-    choice = ''
+    choice = 'x'
     if not args.major and not args.minor and not args.patch:
         while choice not in 'mip':
             choice = (raw_input('Revision level for tag? ([m]ajor, m[i]nor, [p]atch): ') + ' ')[0].lower()
